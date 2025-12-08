@@ -1,0 +1,29 @@
+# Backend
+uploads/
+__pycache__/
+.env
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.venv/
+env/
+venv/
+
+# Frontend
+node_modules/
+dist/
+.angular/
+*.log
+package-lock.json
+
+# OS / Editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+

@@ -1,0 +1,11 @@
+<div class="card">
+  <h2>Recherche par contenu</h2>
+  <input type="file" (change)="onQueryChange($event)" />
+  <button (click)="search()">Rechercher</button>
+
+  <div *ngIf="results.length === 0">Aucun résultat pour l'instant.</div>
+  <div *ngFor="let r of results">
+    {{ r.filename || r.id }}
+  </div>
+</div>
+

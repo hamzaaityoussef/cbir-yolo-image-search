@@ -1,0 +1,8 @@
+nav a {
+  margin-right: 8px;
+}
+
+nav a.active {
+  font-weight: bold;
+}
+

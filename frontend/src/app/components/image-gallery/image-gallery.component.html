@@ -1,0 +1,10 @@
+<div class="card">
+  <h2>Galerie</h2>
+  <div *ngIf="images.length === 0">Aucune image pour le moment.</div>
+  <div *ngFor="let img of images">
+    <strong>{{ img.filename || img.id }}</strong>
+    <button (click)="download(img.id)">Download</button>
+    <button (click)="remove(img.id)">Delete</button>
+  </div>
+</div>
+

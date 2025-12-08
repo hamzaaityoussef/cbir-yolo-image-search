@@ -1,0 +1,7 @@
+<div class="card">
+  <h2>Upload d'images</h2>
+  <input type="file" (change)="onFileChange($event)" multiple />
+  <button (click)="upload()">Envoyer</button>
+  <p>{{ message }}</p>
+</div>
+
