@@ -8,6 +8,7 @@ from routes.download import DownloadResource
 from routes.delete import DeleteResource
 from routes.search import SearchResource
 from routes.transform import TransformResource
+from routes.list import ListResource
 
 
 def create_app() -> Flask:
@@ -19,6 +20,7 @@ def create_app() -> Flask:
 
     # Enregistrement des endpoints REST
     api.add_resource(UploadResource, "/upload")
+    api.add_resource(ListResource, "/images")
     api.add_resource(DownloadResource, "/download/<string:image_id>")
     api.add_resource(DeleteResource, "/delete/<string:image_id>")
     api.add_resource(SearchResource, "/search")

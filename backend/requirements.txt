@@ -8,5 +8,6 @@ numpy
 torch
 ultralytics
 scikit-image
+scikit-learn
 scipy
 
