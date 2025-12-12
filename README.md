@@ -1,24 +1,69 @@
 # CBIR & YOLO Image Search (Flask + Angular + MongoDB)
 
-Projet académique pour le module "Multimedia Mining and Indexing". Cette base de code fournit le squelette complet pour :
-- Un backend Flask (API REST) avec endpoints vides pour l'upload, la suppression, la recherche par descripteurs, etc.
-- Un frontend Angular pour l'upload, la galerie, la recherche et la vue des descripteurs.
-- Une base MongoDB pour stocker les métadonnées (chemins, objets détectés, descripteurs, date).
+Projet académique pour le module "Multimedia Mining and Indexing". Application Web complète pour l'exploration d'une collection d'images par contenu et détection d'objets.
 
-## Prérequis
+## ✨ Fonctionnalités
+
+- **Détection d'objets** : YOLOv8n pour détecter 80 classes d'objets (personnes, véhicules, animaux, etc.)
+- **Extraction de descripteurs** : Histogrammes RGB/HSV, couleurs dominantes, Tamura, Gabor, moments de Hu, HOG
+- **Recherche par similarité** : Recherche d'images similaires basée sur le contenu visuel
+- **Transformations d'images** : Crop, resize, rotation, flip, ajustement luminosité/contraste
+- **Interface Web** : Frontend Angular avec upload, galerie, recherche et visualisation
+
+## 📋 Prérequis
+
 - Python 3.10+ et pip
 - Node.js 18+ et npm
-- MongoDB en local ou accessible via URI
+- MongoDB Atlas (gratuit en ligne) - **pas besoin d'installation locale**
 
-## Backend (Flask)
+## 🚀 Démarrage Rapide
+
+**Voir [QUICK_START.md](QUICK_START.md) pour un guide de démarrage en 5 minutes**
+
+**Ou [SETUP_GUIDE.md](SETUP_GUIDE.md) pour un guide détaillé complet**
+
+## ⚙️ Installation
+
+### Backend (Flask)
+
+1. **Créer l'environnement virtuel :**
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate        # ou .venv\Scripts\activate sous Windows
+.venv\Scripts\activate  # Windows
+# ou source .venv/bin/activate  # Linux/Mac
+```
+
+2. **Installer les dépendances :**
+```bash
 pip install -r requirements.txt
-# créer un fichier .env avec MONGO_URI, MONGO_DB, UPLOAD_FOLDER
+```
+
+3. **Configurer MongoDB Atlas :**
+   - Créez un compte sur [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Créez un cluster FREE
+   - Configurez Network Access et Database Access
+   - Copiez votre chaîne de connexion
+
+4. **Créer le fichier `.env` :**
+```bash
+copy .env.example .env  # Windows
+# ou cp .env.example .env  # Linux/Mac
+```
+
+5. **Éditez `.env`** avec votre URI MongoDB Atlas :
+```env
+MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/cbir?retryWrites=true&w=majority
+MONGO_DB=cbir
+UPLOAD_FOLDER=uploads
+```
+
+6. **Démarrer le serveur :**
+```bash
 python app.py
 ```
+
+Le backend sera accessible sur `http://localhost:5000`
 
 Endpoints (à compléter) :
 - `POST /upload` : uploader une ou plusieurs images
@@ -34,12 +79,22 @@ Points d'entrée du code :
 - `models/image_model.py` : accès MongoDB et structure des documents
 - `uploads/` : stockage des images (ignoré par git)
 
-## Frontend (Angular)
+### Frontend (Angular)
+
+1. **Installer les dépendances :**
 ```bash
 cd frontend
 npm install
-npm start            # proxy Angular si besoin, sinon npm run build
 ```
+
+2. **Démarrer le serveur de développement :**
+```bash
+npm start
+# ou
+ng serve
+```
+
+Le frontend sera accessible sur `http://localhost:4200`
 Composants :
 - `image-upload` : formulaire pour uploader une ou plusieurs images
 - `image-gallery` : liste des images, boutons download/delete/transform
@@ -49,10 +104,24 @@ Composants :
 Services :
 - `api.service.ts` : appels HTTP vers l’API Flask (upload/download/delete/search/transform)
 
-## Notes d’implémentation YOLO & descripteurs
-- Ajouter le chargement du modèle YOLOv8n dans `utils/yolo_detection.py` (bibliothèque `ultralytics` recommandée).
-- Les descripteurs couleur/texture/forme sont à implémenter dans `utils/descriptor_extraction.py` (histogrammes, Tamura, Gabor, moments de Hu, etc.).
-- Stocker dans MongoDB les métadonnées : nom de fichier, chemin, objets détectés (classes, bounding boxes, scores), descripteurs visuels, date d’upload.
+## 📚 Documentation
+
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** : Guide complet de configuration étape par étape
+- **[QUICK_START.md](QUICK_START.md)** : Démarrage rapide en 5 minutes
+- **[backend/ROUTES_DOCUMENTATION.md](backend/ROUTES_DOCUMENTATION.md)** : Documentation complète de l'API REST
+
+## 🔧 Implémentation
+
+### YOLO & Descripteurs
+- ✅ **YOLOv8n** : Détection d'objets implémentée dans `utils/yolo_detection.py`
+- ✅ **Descripteurs visuels** : Tous implémentés dans `utils/descriptor_extraction.py` :
+  - Histogrammes RGB et HSV
+  - Couleurs dominantes (K-means)
+  - Descripteurs de Tamura (rugosité, contraste, orientation)
+  - Filtres de Gabor
+  - Moments de Hu
+  - HOG (Histogram of Oriented Gradients)
+- ✅ **MongoDB** : Stockage des métadonnées (nom, chemin, objets détectés, descripteurs, date)
 
 ## Structure
 ```
@@ -70,11 +139,23 @@ frontend/
       services/
 ```
 
-## Sécurité et CORS
-- `flask-cors` est activé pour accepter les requêtes Angular.
-- Ne pas exposer le fichier `.env` (contient URI Mongo, secrets).
+## 🔐 Sécurité
 
-## Licences / données
-- Ne pas committer les images ou datasets volumineux (`uploads/` ignoré).
-- ImageNet : sélectionner 15 catégories pertinentes pour le mini-projet.
+- `flask-cors` est activé pour accepter les requêtes Angular
+- Le fichier `.env` est dans `.gitignore` - **ne jamais le commiter**
+- MongoDB Atlas : Utilisez des mots de passe forts et limitez l'accès IP en production
+
+## 📝 Notes
+
+- Les images uploadées sont stockées dans `backend/uploads/` (ignoré par git)
+- ImageNet : Sélectionnez 15 catégories pertinentes pour votre dataset
+- Le modèle YOLOv8n sera téléchargé automatiquement au premier usage (~6MB)
+
+## 🐛 Dépannage
+
+Voir la section "Dépannage" dans [SETUP_GUIDE.md](SETUP_GUIDE.md)
+
+## 📄 Licence
+
+Projet académique - Module "Multimedia Mining and Indexing"
 

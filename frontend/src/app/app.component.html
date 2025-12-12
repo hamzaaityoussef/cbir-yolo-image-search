@@ -1,10 +1,26 @@
-<div class="container">
-  <h1>{{ title }}</h1>
-  <nav>
-    <a routerLink="/">Upload</a> |
-    <a routerLink="/gallery">Galerie</a> |
-    <a routerLink="/search">Recherche</a>
-  </nav>
-  <router-outlet></router-outlet>
-</div>
+<div class="app-container">
+  <header class="app-header">
+    <h1>🔍 CBIR & YOLO Image Search</h1>
+    <p class="subtitle">Recherche d'images par contenu avec détection d'objets</p>
+  </header>
 
+  <nav class="app-nav">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+      📤 Upload
+    </a>
+    <a routerLink="/gallery" routerLinkActive="active">
+      🖼️ Galerie
+    </a>
+    <a routerLink="/search" routerLinkActive="active">
+      🔍 Recherche
+    </a>
+  </nav>
+
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="app-footer">
+    <p>Projet académique - Multimedia Mining and Indexing</p>
+  </footer>
+</div>

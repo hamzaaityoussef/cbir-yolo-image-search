@@ -1,10 +1,96 @@
-<div class="card">
-  <h2>Galerie</h2>
-  <div *ngIf="images.length === 0">Aucune image pour le moment.</div>
-  <div *ngFor="let img of images">
-    <strong>{{ img.filename || img.id }}</strong>
-    <button (click)="download(img.id)">Download</button>
-    <button (click)="remove(img.id)">Delete</button>
+<div class="gallery-container">
+  <h2>Galerie d'Images</h2>
+
+  <div class="controls">
+    <div class="filter-section">
+      <label for="classFilter">Filtrer par classe d'objet:</label>
+      <select 
+        id="classFilter" 
+        [(ngModel)]="objectClassFilter" 
+        (change)="onFilterChange()"
+        class="filter-select">
+        <option value="">Toutes les images</option>
+        <option *ngFor="let cls of availableClasses" [value]="cls">{{ cls }}</option>
+      </select>
+    </div>
+    <button class="refresh-button" (click)="loadImages()" [disabled]="loading">
+      🔄 Actualiser
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    ⏳ Chargement des images...
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    ❌ {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error">
+    <div class="gallery-info">
+      <p>{{ total }} image(s) au total</p>
+      <p>Page {{ currentPage }} / {{ totalPages }}</p>
+    </div>
+
+    <div *ngIf="images.length === 0" class="empty-state">
+      <p>📭 Aucune image trouvée.</p>
+      <p>Uploadez des images depuis la page d'upload pour commencer.</p>
+    </div>
+
+    <div class="gallery-grid" *ngIf="images.length > 0">
+      <div class="image-card" *ngFor="let image of images">
+        <div class="image-preview" (click)="viewImage(image)">
+          <img [src]="'http://localhost:5000/download/' + image.id" 
+               [alt]="image.filename"
+               (error)="$event.target.src='assets/placeholder.png'">
+          <div class="image-overlay">
+            <span class="view-icon">👁️</span>
+          </div>
+        </div>
+        <div class="image-info">
+          <h4 class="image-title" [title]="image.filename">
+            {{ image.filename.length > 20 ? (image.filename | slice:0:20) + '...' : image.filename }}
+          </h4>
+          <div class="image-meta">
+            <span *ngIf="image.objects_count !== undefined" class="badge">
+              {{ image.objects_count }} objet(s)
+            </span>
+            <span *ngIf="image.object_classes" class="classes">
+              {{ image.object_classes.join(', ') }}
+            </span>
+          </div>
+          <div class="image-actions">
+            <button class="action-btn view-btn" (click)="viewImage(image)">👁️ Voir</button>
+            <button class="action-btn download-btn" (click)="downloadImage(image)">⬇️ Télécharger</button>
+            <button class="action-btn delete-btn" (click)="deleteImage(image)">🗑️ Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button (click)="previousPage()" [disabled]="currentPage === 1">◀️ Précédent</button>
+      <span>Page {{ currentPage }} / {{ totalPages }}</span>
+      <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant ▶️</button>
+    </div>
   </div>
 </div>
 
+<!-- Modal pour afficher l'image en grand -->
+<div *ngIf="selectedImage && imageUrl" class="image-modal" (click)="closeImageView()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <button class="close-button" (click)="closeImageView()">✕</button>
+    <h3>{{ selectedImage.filename }}</h3>
+    <img [src]="imageUrl" [alt]="selectedImage.filename">
+    <div class="modal-info">
+      <p><strong>Objets détectés:</strong> {{ selectedImage.objects_count || 0 }}</p>
+      <div *ngIf="selectedImage.objects_detected && selectedImage.objects_detected.length > 0">
+        <ul>
+          <li *ngFor="let obj of selectedImage.objects_detected">
+            {{ obj.class }} ({{ (obj.confidence * 100).toFixed(1) }}%)
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

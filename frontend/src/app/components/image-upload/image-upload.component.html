@@ -1,7 +1,54 @@
-<div class="card">
-  <h2>Upload d'images</h2>
-  <input type="file" (change)="onFileChange($event)" multiple />
-  <button (click)="upload()">Envoyer</button>
-  <p>{{ message }}</p>
-</div>
+<div class="upload-container">
+  <h2>Upload d'Images</h2>
+  <p class="description">
+    Sélectionnez une ou plusieurs images pour les uploader. 
+    Les objets seront automatiquement détectés avec YOLO et les descripteurs visuels seront extraits.
+  </p>
 
+  <div class="upload-form">
+    <div class="file-input-wrapper">
+      <input 
+        type="file" 
+        id="fileInput" 
+        multiple 
+        accept="image/*"
+        (change)="onFileChange($event)"
+        [disabled]="uploading">
+      <label for="fileInput" class="file-label">
+        <span *ngIf="!uploading">📁 Choisir des images</span>
+        <span *ngIf="uploading">⏳ Upload en cours...</span>
+      </label>
+    </div>
+
+    <div *ngIf="selectedFiles && selectedFiles.length > 0" class="selected-files">
+      <p><strong>{{ selectedFiles.length }}</strong> fichier(s) sélectionné(s):</p>
+      <ul>
+        <li *ngFor="let file of filesArray">
+          {{ file.name }} ({{ (file.size / 1024 / 1024).toFixed(2) }} MB)
+        </li>
+      </ul>
+    </div>
+
+    <button 
+      class="upload-button" 
+      (click)="upload()" 
+      [disabled]="!selectedFiles || uploading">
+      <span *ngIf="!uploading">⬆️ Uploader</span>
+      <span *ngIf="uploading">⏳ Upload en cours...</span>
+    </button>
+
+    <div *ngIf="message" [ngClass]="getMessageClass()">
+      {{ message }}
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h3>ℹ️ Informations</h3>
+    <ul>
+      <li>Formats supportés: JPG, PNG, GIF, BMP, WEBP</li>
+      <li>Détection automatique des objets avec YOLOv8n</li>
+      <li>Extraction automatique des descripteurs visuels</li>
+      <li>Les images sont stockées dans MongoDB Atlas</li>
+    </ul>
+  </div>
+</div>

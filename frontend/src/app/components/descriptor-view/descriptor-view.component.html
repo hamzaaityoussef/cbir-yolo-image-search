@@ -1,5 +1,101 @@
-<div class="card">
-  <h2>Descripteurs</h2>
-  <pre>{{ descriptors | json }}</pre>
-</div>
+<div class="descriptor-container">
+  <div *ngIf="loading" class="loading">
+    ⏳ Chargement des descripteurs...
+  </div>
 
+  <div *ngIf="error" class="error-message">
+    ❌ {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && image">
+    <h2>Descripteurs visuels - {{ image.filename }}</h2>
+
+    <div class="image-preview">
+      <img [src]="'http://localhost:5000/download/' + image.id" [alt]="image.filename">
+    </div>
+
+    <div class="info-section">
+      <h3>Informations générales</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>ID:</strong> {{ image.id }}
+        </div>
+        <div class="info-item">
+          <strong>Nom de fichier:</strong> {{ image.filename }}
+        </div>
+        <div class="info-item">
+          <strong>Date d'upload:</strong> {{ image.uploaded_at | date:'medium' }}
+        </div>
+        <div class="info-item">
+          <strong>Objets détectés:</strong> {{ image.objects_count || 0 }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="image.objects_detected && image.objects_detected.length > 0" class="objects-section">
+      <h3>Objets détectés (YOLO)</h3>
+      <div class="objects-list">
+        <div class="object-item" *ngFor="let obj of image.objects_detected; let i = index">
+          <div class="object-header">
+            <strong>{{ obj.class }}</strong>
+            <span class="confidence">Confiance: {{ (obj.confidence * 100).toFixed(1) }}%</span>
+          </div>
+          <div class="object-bbox">
+            Bounding Box: [{{ obj.bbox?.join(', ') }}]
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="descriptors-section">
+      <h3>Descripteurs visuels</h3>
+      <p class="note">
+        ⚠️ Les descripteurs complets nécessitent un endpoint dédié. 
+        Les informations affichées sont celles disponibles via l'API actuelle.
+      </p>
+
+      <div class="descriptor-categories">
+        <div class="category-card">
+          <h4>Histogrammes de couleurs</h4>
+          <p>Les histogrammes RGB et HSV sont calculés et stockés pour chaque image.</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+
+        <div class="category-card">
+          <h4>Couleurs dominantes</h4>
+          <p>5 couleurs dominantes extraites via K-means clustering.</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+
+        <div class="category-card">
+          <h4>Descripteurs de Tamura</h4>
+          <p>Rugosité, contraste et orientation calculés.</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+
+        <div class="category-card">
+          <h4>Filtres de Gabor</h4>
+          <p>64 descripteurs basés sur les filtres de Gabor (4 échelles × 8 orientations × 2 statistiques).</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+
+        <div class="category-card">
+          <h4>Moments de Hu</h4>
+          <p>7 moments invariants de Hu calculés.</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+
+        <div class="category-card">
+          <h4>HOG (Histogram of Oriented Gradients)</h4>
+          <p>Histogramme des orientations de gradient calculé.</p>
+          <p class="status">✅ Calculé</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="back-button" (click)="goBack()">← Retour</button>
+      <button class="download-button" (click)="downloadImage()">⬇️ Télécharger</button>
+    </div>
+  </div>
+</div>

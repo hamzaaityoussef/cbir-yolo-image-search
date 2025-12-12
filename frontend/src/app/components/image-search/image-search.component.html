@@ -1,11 +1,152 @@
-<div class="card">
-  <h2>Recherche par contenu</h2>
-  <input type="file" (change)="onQueryChange($event)" />
-  <button (click)="search()">Rechercher</button>
+<div class="search-container">
+  <h2>Recherche d'Images Similaires</h2>
+  <p class="description">
+    Recherchez des images similaires en uploadant une nouvelle image ou en sélectionnant une image existante.
+    Vous pouvez également rechercher des images contenant un objet spécifique.
+  </p>
 
-  <div *ngIf="results.length === 0">Aucun résultat pour l'instant.</div>
-  <div *ngFor="let r of results">
-    {{ r.filename || r.id }}
+  <div class="search-form">
+    <!-- Mode de recherche -->
+    <div class="mode-selector">
+      <label>
+        <input type="radio" name="searchMode" value="upload" [(ngModel)]="searchMode" (change)="loadAvailableImages()">
+        Upload d'une nouvelle image
+      </label>
+      <label>
+        <input type="radio" name="searchMode" value="existing" [(ngModel)]="searchMode" (change)="loadAvailableImages()">
+        Utiliser une image existante
+      </label>
+    </div>
+
+    <!-- Mode Upload -->
+    <div *ngIf="searchMode === 'upload'" class="upload-section">
+      <div class="file-input-wrapper">
+        <input 
+          type="file" 
+          id="queryFile" 
+          accept="image/*"
+          (change)="onQueryFileChange($event)">
+        <label for="queryFile" class="file-label">
+          📁 Choisir une image requête
+        </label>
+      </div>
+      <div *ngIf="queryFile" class="selected-file">
+        <strong>Image sélectionnée:</strong> {{ queryFile.name }}
+        ({{ (queryFile.size / 1024 / 1024).toFixed(2) }} MB)
+      </div>
+    </div>
+
+    <!-- Mode Existing -->
+    <div *ngIf="searchMode === 'existing'" class="existing-section">
+      <div class="form-group">
+        <label for="imageSelect">Sélectionner une image:</label>
+        <select 
+          id="imageSelect" 
+          [(ngModel)]="selectedImageId" 
+          (change)="onImageSelect(selectedImageId)"
+          class="form-select">
+          <option value="">-- Choisir une image --</option>
+          <option *ngFor="let img of availableImages" [value]="img.id">
+            {{ img.filename }} ({{ img.objects_count || 0 }} objet(s))
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="selectedImage && selectedImage.objects_detected && selectedImage.objects_detected.length > 0" class="objects-section">
+        <label>Rechercher un objet spécifique (optionnel):</label>
+        <div class="objects-list">
+          <label *ngFor="let obj of selectedImage.objects_detected; let i = index" class="object-option">
+            <input 
+              type="radio" 
+              name="objectId" 
+              [value]="i" 
+              [(ngModel)]="selectedObjectId">
+            <span class="object-info">
+              <strong>{{ obj.class }}</strong> 
+              ({{ (obj.confidence * 100).toFixed(1) }}%)
+            </span>
+          </label>
+          <label class="object-option">
+            <input type="radio" name="objectId" value="" [(ngModel)]="selectedObjectId" [ngModelOptions]="{standalone: true}">
+            <span>Image complète</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paramètres de recherche -->
+    <div class="search-params">
+      <div class="param-group">
+        <label for="topK">Nombre de résultats:</label>
+        <input 
+          type="number" 
+          id="topK" 
+          [(ngModel)]="topK" 
+          min="1" 
+          max="50" 
+          class="param-input">
+      </div>
+      <div class="param-group">
+        <label for="objectClassFilter">Filtrer par classe (optionnel):</label>
+        <input 
+          type="text" 
+          id="objectClassFilter" 
+          [(ngModel)]="objectClassFilter" 
+          placeholder="ex: person, car, dog"
+          class="param-input">
+      </div>
+    </div>
+
+    <button 
+      class="search-button" 
+      (click)="search()" 
+      [disabled]="loading || (searchMode === 'upload' && !queryFile) || (searchMode === 'existing' && !selectedImageId)">
+      <span *ngIf="!loading">🔍 Rechercher</span>
+      <span *ngIf="loading">⏳ Recherche en cours...</span>
+    </button>
+
+    <div *ngIf="error" class="error-message">
+      ❌ {{ error }}
+    </div>
+  </div>
+
+  <!-- Résultats -->
+  <div *ngIf="results.length > 0" class="results-section">
+    <h3>Résultats de la recherche ({{ results.length }})</h3>
+    
+    <div *ngIf="queryInfo" class="query-info">
+      <p><strong>Requête:</strong> 
+        <span *ngIf="queryInfo.type === 'upload'">Image uploadée</span>
+        <span *ngIf="queryInfo.type === 'existing'">Image existante (ID: {{ queryInfo.image_id }})</span>
+        <span *ngIf="queryInfo.object_index !== undefined"> - Objet #{{ queryInfo.object_index }} ({{ queryInfo.object_class }})</span>
+      </p>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-card" *ngFor="let result of results">
+        <div class="result-image" (click)="viewImage(result)">
+          <img [src]="'http://localhost:5000/download/' + result.id" 
+               [alt]="result.filename"
+               (error)="$event.target.src='assets/placeholder.png'">
+          <div class="similarity-badge">
+            Score: {{ result.similarity_score?.toFixed(4) || 'N/A' }}
+          </div>
+        </div>
+        <div class="result-info">
+          <h4>{{ result.filename }}</h4>
+          <div class="result-meta">
+            <span class="badge">{{ result.objects_count || 0 }} objet(s)</span>
+            <span *ngIf="result.object_classes" class="classes">
+              {{ result.object_classes.join(', ') }}
+            </span>
+          </div>
+          <button class="view-btn" (click)="viewImage(result)">👁️ Voir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && results.length === 0 && queryInfo" class="no-results">
+    <p>📭 Aucun résultat trouvé.</p>
   </div>
 </div>
-
