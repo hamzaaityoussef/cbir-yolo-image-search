@@ -29,7 +29,7 @@ const routes: Routes = [
     BrowserModule,
     HttpClientModule,
     FormsModule,
-    RouterModule.forRoot(routes)
+    RouterModule.forRoot(routes, { enableTracing: false })
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -10,4 +10,5 @@ ultralytics
 scikit-image
 scikit-learn
 scipy
+python-dotenv
 
