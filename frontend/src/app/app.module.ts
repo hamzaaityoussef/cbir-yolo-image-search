@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
@@ -27,11 +27,12 @@ const routes: Routes = [
   ],
   imports: [
     BrowserModule,
-    HttpClientModule,
     FormsModule,
-    RouterModule.forRoot(routes, { enableTracing: false })
+    RouterModule.forRoot(routes)
   ],
-  providers: [],
+  providers: [
+    provideHttpClient(withInterceptorsFromDi())
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
