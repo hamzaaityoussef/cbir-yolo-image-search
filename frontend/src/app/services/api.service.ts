@@ -6,9 +6,11 @@ const API_BASE = 'http://localhost:5000';
 
 export interface Image {
   id: string;
+  image_id?: string; // Pour compatibilité avec les résultats de recherche
   filename: string;
   uploaded_at?: string;
-  objects_detected?: any[];
+  detected_objects?: any[]; // Nom utilisé par le backend
+  objects_detected?: any[]; // Alias pour compatibilité
   objects_count?: number;
   object_classes?: string[];
   similarity_score?: number;

@@ -381,3 +381,60 @@ def extract_descriptors(image_path: str) -> Dict[str, Any]:
     }
     
     return descriptors
+
+
+def extract_object_descriptors(image: np.ndarray, bbox: List[float]) -> Dict[str, Any]:
+    """
+    Extrait les descripteurs visuels d'un objet spécifique dans une image.
+    L'objet est défini par sa bounding box (bounding box).
+    
+    Args:
+        image: Image complète en format BGR (OpenCV)
+        bbox: Bounding box [x1, y1, x2, y2] en coordonnées pixel
+    
+    Returns:
+        Dictionnaire contenant tous les descripteurs extraits pour l'objet
+    """
+    if len(bbox) != 4:
+        raise ValueError("Bounding box doit contenir 4 valeurs [x1, y1, x2, y2]")
+    
+    # Extraire la région de l'objet (crop)
+    x1, y1, x2, y2 = [int(coord) for coord in bbox]
+    
+    # S'assurer que les coordonnées sont valides
+    h, w = image.shape[:2]
+    x1 = max(0, min(x1, w))
+    y1 = max(0, min(y1, h))
+    x2 = max(x1 + 1, min(x2, w))
+    y2 = max(y1 + 1, min(y2, h))
+    
+    # Cropper l'image pour obtenir seulement l'objet
+    object_image = image[y1:y2, x1:x2]
+    
+    # Vérifier que le crop n'est pas vide
+    if object_image.size == 0:
+        raise ValueError("Bounding box invalide : région vide")
+    
+    # Extraire tous les descripteurs pour cet objet
+    descriptors = {
+        # Histogrammes de couleurs
+        "color_histogram_rgb": extract_color_histogram_rgb(object_image),
+        "color_histogram_hsv": extract_color_histogram_hsv(object_image),
+        
+        # Couleurs dominantes
+        "dominant_colors": extract_dominant_colors(object_image, k=5),
+        
+        # Descripteurs de Tamura
+        "tamura": extract_tamura_descriptors(object_image),
+        
+        # Filtres de Gabor
+        "gabor": extract_gabor_descriptors(object_image, num_orientations=8, num_scales=4),
+        
+        # Moments de Hu
+        "hu_moments": extract_hu_moments(object_image),
+        
+        # Histogramme des orientations (HOG)
+        "hog": extract_hog_descriptor(object_image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2))
+    }
+    
+    return descriptors

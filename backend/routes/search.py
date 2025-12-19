@@ -72,6 +72,7 @@ class SearchResource(Resource):
         
         query_descriptors = None
         query_info = {}
+        search_by_objects = False  # Par défaut, rechercher par image complète
         
         try:
             if search_type == "upload":
@@ -99,6 +100,7 @@ class SearchResource(Resource):
                         "filename": file.filename,
                         "objects_detected": detected
                     }
+                    search_by_objects = False  # Rechercher par image complète
                 finally:
                     # Nettoyer le fichier temporaire
                     if os.path.exists(temp_path):
@@ -118,48 +120,45 @@ class SearchResource(Resource):
                 object_id = request.form.get("object_id") or request.json.get("object_id")
                 
                 if object_id is not None:
-                    # Extraire les descripteurs d'un objet spécifique (crop de l'objet)
+                    # Utiliser les descripteurs d'un objet spécifique (déjà stockés)
                     object_id = int(object_id)
                     detected_objects = image.get("detected_objects", [])
                     
                     if 0 <= object_id < len(detected_objects):
                         obj = detected_objects[object_id]
-                        bbox = obj.get("bbox", [])
+                        query_descriptors = obj.get("descriptors", {})
                         
-                        # Charger l'image et cropper l'objet
-                        img = cv2.imread(image["path"])
-                        if img is not None and len(bbox) == 4:
-                            x1, y1, x2, y2 = [int(coord) for coord in bbox]
-                            x1, y1 = max(0, x1), max(0, y1)
-                            x2, y2 = min(img.shape[1], x2), min(img.shape[0], y2)
-                            
-                            cropped = img[y1:y2, x1:x2]
-                            
-                            # Sauvegarder temporairement le crop
-                            import tempfile
-                            temp_path = os.path.join(tempfile.gettempdir(), f"crop_{image_id}.jpg")
-                            cv2.imwrite(temp_path, cropped)
-                            
-                            try:
-                                query_descriptors = extract_descriptors(temp_path)
-                            finally:
-                                if os.path.exists(temp_path):
-                                    os.remove(temp_path)
-                            
-                            query_info = {
-                                "type": "object",
-                                "image_id": image_id,
-                                "object_index": object_id,
-                                "object_class": obj.get("class"),
-                                "bbox": bbox
-                            }
-                        else:
-                            # Fallback: utiliser les descripteurs de l'image complète
-                            query_descriptors = image.get("descriptors", {})
-                            query_info = {
-                                "type": "existing",
-                                "image_id": image_id
-                            }
+                        if not query_descriptors:
+                            # Si les descripteurs ne sont pas stockés, les extraire
+                            bbox = obj.get("bbox", [])
+                            img = cv2.imread(image["path"])
+                            if img is not None and len(bbox) == 4:
+                                x1, y1, x2, y2 = [int(coord) for coord in bbox]
+                                x1, y1 = max(0, x1), max(0, y1)
+                                x2, y2 = min(img.shape[1], x2), min(img.shape[0], y2)
+                                
+                                cropped = img[y1:y2, x1:x2]
+                                
+                                import tempfile
+                                temp_path = os.path.join(tempfile.gettempdir(), f"crop_{image_id}.jpg")
+                                cv2.imwrite(temp_path, cropped)
+                                
+                                try:
+                                    query_descriptors = extract_descriptors(temp_path)
+                                finally:
+                                    if os.path.exists(temp_path):
+                                        os.remove(temp_path)
+                            else:
+                                return {"error": "Impossible d'extraire les descripteurs de l'objet"}, 500
+                        
+                        query_info = {
+                            "type": "object",
+                            "image_id": image_id,
+                            "object_index": object_id,
+                            "object_class": obj.get("class"),
+                            "bbox": obj.get("bbox", [])
+                        }
+                        search_by_objects = True  # Rechercher par objets
                     else:
                         return {"error": "Index d'objet invalide"}, 400
                 else:
@@ -170,6 +169,7 @@ class SearchResource(Resource):
                         "image_id": image_id,
                         "objects_detected": image.get("detected_objects", [])
                     }
+                    search_by_objects = False  # Rechercher par image complète
             
             else:
                 return {"error": "Type de recherche invalide"}, 400
@@ -192,20 +192,45 @@ class SearchResource(Resource):
             
             # Rechercher les images similaires
             top_k = int(request.form.get("top_k", 10) or (request.json.get("top_k", 10) if request.is_json else 10))
-            similar_images = search_similar_images(query_descriptors, all_images, top_k=top_k)
+            
+            similar_images = search_similar_images(
+                query_descriptors, 
+                all_images, 
+                top_k=top_k,
+                search_by_objects=search_by_objects
+            )
             
             # Construire la réponse
             results = []
-            for image_id, similarity_score in similar_images:
+            for result_item in similar_images:
+                if len(result_item) == 3:
+                    image_id, similarity_score, object_info = result_item
+                else:
+                    # Compatibilité avec l'ancien format
+                    image_id, similarity_score = result_item
+                    object_info = None
+                
                 image = ImageModel.find_by_id(image_id)
                 if image:
-                    results.append({
-                        "image_id": image_id,
+                    detected_objects = image.get("detected_objects", [])
+                    classes = list(set([obj.get("class") for obj in detected_objects if obj.get("class")]))
+                    
+                    result_data = {
+                        "id": str(image_id),  # Utiliser 'id' pour cohérence avec /images
+                        "image_id": str(image_id),  # Garder aussi image_id pour compatibilité
                         "filename": image.get("filename"),
                         "similarity_score": round(similarity_score, 4),
-                        "detected_objects": image.get("detected_objects", []),
+                        "detected_objects": detected_objects,
+                        "objects_count": len(detected_objects),
+                        "object_classes": classes,
                         "uploaded_at": image.get("uploaded_at").isoformat() if image.get("uploaded_at") else None
-                    })
+                    }
+                    
+                    # Ajouter l'info sur l'objet le plus similaire si recherche par objets
+                    if object_info:
+                        result_data["matched_object"] = object_info
+                    
+                    results.append(result_data)
             
             return {
                 "query_info": query_info,

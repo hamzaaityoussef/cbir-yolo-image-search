@@ -135,33 +135,66 @@ def compare_descriptors(desc1: Dict[str, Any], desc2: Dict[str, Any],
     
     # Comparer les descripteurs Gabor
     if "gabor" in desc1 and "gabor" in desc2:
-        gabor1 = np.array(desc1["gabor"])
-        gabor2 = np.array(desc2["gabor"])
-        
-        dist = cosine_similarity(gabor1, gabor2)
-        total_distance += dist * weights["gabor"]
-        total_weight += weights["gabor"]
+        try:
+            gabor1 = np.array(desc1["gabor"]).flatten()  # Aplatir en 1D
+            gabor2 = np.array(desc2["gabor"]).flatten()  # Aplatir en 1D
+            
+            # Gérer les différences de taille
+            if len(gabor1) != len(gabor2):
+                # Utiliser la taille minimale (tronquer)
+                min_size = min(len(gabor1), len(gabor2))
+                gabor1 = gabor1[:min_size]
+                gabor2 = gabor2[:min_size]
+            
+            if len(gabor1) > 0 and len(gabor2) > 0:
+                dist = cosine_similarity(gabor1, gabor2)
+                total_distance += dist * weights["gabor"]
+                total_weight += weights["gabor"]
+        except Exception as e:
+            # Si erreur, ignorer ce descripteur
+            print(f"Erreur comparaison Gabor: {str(e)}")
     
     # Comparer les moments de Hu
     if "hu_moments" in desc1 and "hu_moments" in desc2:
-        hu1 = np.array(desc1["hu_moments"])
-        hu2 = np.array(desc2["hu_moments"])
-        
-        dist = euclidean_distance(hu1, hu2)
-        # Normaliser
-        dist = dist / 10.0
-        
-        total_distance += dist * weights["hu_moments"]
-        total_weight += weights["hu_moments"]
+        try:
+            hu1 = np.array(desc1["hu_moments"])
+            hu2 = np.array(desc2["hu_moments"])
+            
+            # Les moments de Hu ont toujours 7 valeurs, mais vérifions quand même
+            if len(hu1) != len(hu2):
+                min_len = min(len(hu1), len(hu2))
+                hu1 = hu1[:min_len]
+                hu2 = hu2[:min_len]
+            
+            dist = euclidean_distance(hu1, hu2)
+            # Normaliser
+            dist = dist / 10.0
+            
+            total_distance += dist * weights["hu_moments"]
+            total_weight += weights["hu_moments"]
+        except Exception as e:
+            print(f"Erreur comparaison Hu moments: {str(e)}")
     
     # Comparer HOG
     if "hog" in desc1 and "hog" in desc2:
-        hog1 = np.array(desc1["hog"])
-        hog2 = np.array(desc2["hog"])
-        
-        dist = cosine_similarity(hog1, hog2)
-        total_distance += dist * weights["hog"]
-        total_weight += weights["hog"]
+        try:
+            hog1 = np.array(desc1["hog"]).flatten()  # Aplatir en 1D
+            hog2 = np.array(desc2["hog"]).flatten()  # Aplatir en 1D
+            
+            # Gérer les différences de taille (HOG dépend de la taille de l'image)
+            if len(hog1) != len(hog2):
+                # Utiliser la taille minimale (tronquer)
+                min_size = min(len(hog1), len(hog2))
+                hog1 = hog1[:min_size]
+                hog2 = hog2[:min_size]
+            
+            if len(hog1) > 0 and len(hog2) > 0:
+                dist = cosine_similarity(hog1, hog2)
+                total_distance += dist * weights["hog"]
+                total_weight += weights["hog"]
+        except Exception as e:
+            # Si erreur, ignorer ce descripteur
+            print(f"Erreur comparaison HOG: {str(e)}")
     
     # Normaliser par le poids total
     if total_weight > 0:
@@ -172,30 +205,70 @@ def compare_descriptors(desc1: Dict[str, Any], desc2: Dict[str, Any],
 
 def search_similar_images(query_descriptors: Dict[str, Any], 
                          all_images: List[Dict[str, Any]], 
-                         top_k: int = 10) -> List[Tuple[str, float]]:
+                         top_k: int = 10,
+                         search_by_objects: bool = False) -> List[Tuple[str, float, Dict[str, Any]]]:
     """
     Recherche les images les plus similaires à partir des descripteurs de requête.
     
     Args:
-        query_descriptors: Descripteurs de l'image requête
+        query_descriptors: Descripteurs de l'image/objet requête
         all_images: Liste de toutes les images avec leurs descripteurs
         top_k: Nombre de résultats à retourner
+        search_by_objects: Si True, compare avec les descripteurs des objets, sinon avec l'image complète
     
     Returns:
-        Liste de tuples (image_id, score_similarité) triés par similarité croissante
+        Liste de tuples (image_id, score_similarité, info_objet) triés par similarité croissante
+        info_objet contient l'index de l'objet le plus similaire si search_by_objects=True
     """
     similarities = []
     
     for image in all_images:
         image_id = str(image["_id"])
-        image_descriptors = image.get("descriptors", {})
+        detected_objects = image.get("detected_objects", [])
         
-        if not image_descriptors:
-            continue
-        
-        # Calculer la distance de similarité
-        distance = compare_descriptors(query_descriptors, image_descriptors)
-        similarities.append((image_id, distance))
+        if search_by_objects:
+            # Comparer avec les descripteurs de chaque objet dans l'image
+            best_distance = float('inf')
+            best_object_info = None
+            
+            for obj_idx, obj in enumerate(detected_objects):
+                obj_descriptors = obj.get("descriptors", {})
+                
+                if not obj_descriptors:
+                    continue
+                
+                try:
+                    # Calculer la distance avec cet objet
+                    distance = compare_descriptors(query_descriptors, obj_descriptors)
+                    
+                    if distance < best_distance:
+                        best_distance = distance
+                        best_object_info = {
+                            "object_index": obj_idx,
+                            "object_class": obj.get("class"),
+                            "confidence": obj.get("confidence")
+                        }
+                except Exception as e:
+                    # Ignorer les erreurs de comparaison pour cet objet
+                    print(f"Erreur comparaison avec objet {obj_idx} de l'image {image_id}: {str(e)}")
+                    continue
+            
+            if best_object_info is not None:
+                similarities.append((image_id, best_distance, best_object_info))
+        else:
+            # Comparer avec les descripteurs de l'image complète
+            image_descriptors = image.get("descriptors", {})
+            
+            if not image_descriptors:
+                continue
+            
+            try:
+                # Calculer la distance de similarité
+                distance = compare_descriptors(query_descriptors, image_descriptors)
+                similarities.append((image_id, distance, None))
+            except Exception as e:
+                print(f"Erreur comparaison avec image {image_id}: {str(e)}")
+                continue
     
     # Trier par distance (plus petit = plus similaire)
     similarities.sort(key=lambda x: x[1])

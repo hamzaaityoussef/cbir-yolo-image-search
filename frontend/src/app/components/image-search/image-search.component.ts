@@ -96,7 +96,15 @@ export class ImageSearchComponent implements OnInit {
 
     this.api.search(payload).subscribe({
       next: (response) => {
-        this.results = response.results || [];
+        // Mapper les résultats pour convertir image_id en id
+        this.results = (response.results || []).map(result => ({
+          ...result,
+          id: result.image_id || result.id, // Utiliser image_id si id n'existe pas
+          objects_count: result.detected_objects?.length || 0,
+          object_classes: result.detected_objects 
+            ? Array.from(new Set(result.detected_objects.map((obj: any) => obj.class)))
+            : []
+        }));
         this.queryInfo = response.query_info;
         this.loading = false;
       },

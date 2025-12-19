@@ -10,9 +10,11 @@ from flask import request, current_app, jsonify
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
 
+import cv2
+
 from models.image_model import ImageModel
 from utils.yolo_detection import detect_objects
-from utils.descriptor_extraction import extract_descriptors
+from utils.descriptor_extraction import extract_descriptors, extract_object_descriptors
 
 
 # Extensions autorisées
@@ -96,19 +98,44 @@ class UploadResource(Resource):
                     # Si YOLO échoue, continuer quand même
                     print(f"Erreur YOLO pour {unique_filename}: {str(e)}")
                 
-                # Extraire les descripteurs visuels
+                # Charger l'image pour extraire les descripteurs
+                image = cv2.imread(save_path)
+                if image is None:
+                    errors.append({
+                        "filename": unique_filename,
+                        "error": "Impossible de charger l'image"
+                    })
+                    if os.path.exists(save_path):
+                        os.remove(save_path)
+                    continue
+                
+                # Extraire les descripteurs visuels de l'image complète
                 descriptors = {}
                 try:
                     descriptors = extract_descriptors(save_path)
                 except Exception as e:
                     errors.append({
                         "filename": unique_filename,
-                        "error": f"Erreur extraction descripteurs: {str(e)}"
+                        "error": f"Erreur extraction descripteurs image: {str(e)}"
                     })
                     # Supprimer le fichier si l'extraction échoue
                     if os.path.exists(save_path):
                         os.remove(save_path)
                     continue
+                
+                # Extraire les descripteurs pour chaque objet détecté
+                for obj in detected_objects:
+                    try:
+                        bbox = obj.get("bbox", [])
+                        if len(bbox) == 4:
+                            # Extraire les descripteurs de cet objet spécifique
+                            object_descriptors = extract_object_descriptors(image, bbox)
+                            # Ajouter les descripteurs à l'objet
+                            obj["descriptors"] = object_descriptors
+                    except Exception as e:
+                        # Si l'extraction échoue pour un objet, continuer avec les autres
+                        print(f"Erreur extraction descripteurs pour objet {obj.get('class', 'unknown')}: {str(e)}")
+                        obj["descriptors"] = {}
                 
                 # Stocker dans MongoDB
                 image_id = ImageModel.create(
