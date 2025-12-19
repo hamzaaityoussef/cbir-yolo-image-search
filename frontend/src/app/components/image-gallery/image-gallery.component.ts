@@ -15,7 +15,7 @@ export class ImageGalleryComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 12;
+  pageSize = 21;
   total = 0;
 
   // Filtres
