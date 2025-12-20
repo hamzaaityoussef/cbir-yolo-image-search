@@ -34,11 +34,18 @@ export class DescriptorViewComponent implements OnInit {
     this.api.listImages({ limit: 1000 }).subscribe({
       next: (response) => {
         this.image = response.images.find(img => img.id === this.imageId) || null;
-        
         if (this.image) {
-          // Pour obtenir les descripteurs complets, on doit faire une recherche
-          // ou créer un endpoint dédié. Pour l'instant, on utilise les données disponibles
-          this.loadDescriptors();
+          // Charger les descripteurs détaillés de l'image complète
+          this.api.getDescriptors(this.imageId, undefined).subscribe({
+            next: (descResp: any) => {
+              this.descriptors = descResp.descriptors;
+              this.loading = false;
+            },
+            error: (error) => {
+              this.error = `Erreur lors du chargement des descripteurs: ${error.error?.error || error.message}`;
+              this.loading = false;
+            }
+          });
         } else {
           this.error = 'Image non trouvée';
           this.loading = false;
@@ -51,11 +58,21 @@ export class DescriptorViewComponent implements OnInit {
     });
   }
 
-  loadDescriptors() {
-    // Note: Les descripteurs complets ne sont pas retournés par /images
-    // Pour une implémentation complète, il faudrait un endpoint /images/:id/descriptors
-    // Pour l'instant, on affiche les informations disponibles
-    this.loading = false;
+  /**
+   * Charge les descripteurs d'un objet spécifique
+   */
+  loadObjectDescriptors(objectId: number) {
+    this.loading = true;
+    this.api.getDescriptors(this.imageId, objectId).subscribe({
+      next: (descResp: any) => {
+        this.descriptors = descResp.descriptors;
+        this.loading = false;
+      },
+      error: (error) => {
+        this.error = `Erreur lors du chargement des descripteurs: ${error.error?.error || error.message}`;
+        this.loading = false;
+      }
+    });
   }
 
   formatNumber(value: number): string {

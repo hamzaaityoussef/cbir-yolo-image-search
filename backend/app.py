@@ -25,6 +25,9 @@ def create_app() -> Flask:
     api.add_resource(DeleteResource, "/delete/<string:image_id>")
     api.add_resource(SearchResource, "/search")
     api.add_resource(TransformResource, "/transform/<string:image_id>")
+    # Nouveau endpoint pour les descripteurs détaillés
+    from routes.descriptors import DescriptorsResource
+    api.add_resource(DescriptorsResource, "/descriptors/<string:image_id>")
 
     @app.route("/health")
     def healthcheck():

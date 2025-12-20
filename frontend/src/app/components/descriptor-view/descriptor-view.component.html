@@ -43,21 +43,27 @@
           <div class="object-bbox">
             Bounding Box: [{{ obj.bbox?.join(', ') }}]
           </div>
+          <button (click)="loadObjectDescriptors(i)">Voir les descripteurs de cet objet</button>
         </div>
       </div>
     </div>
 
     <div class="descriptors-section">
       <h3>Descripteurs visuels</h3>
-      <p class="note">
-        ⚠️ Les descripteurs complets nécessitent un endpoint dédié. 
-        Les informations affichées sont celles disponibles via l'API actuelle.
-      </p>
-
-      <div class="descriptor-categories">
+      <div *ngIf="descriptors">
+        <pre>{{ descriptors | json }}</pre>
+      </div>
+      <div *ngIf="!descriptors">
+        <p class="note">
+          ⚠️ Les descripteurs complets nécessitent un endpoint dédié. 
+          Les informations affichées sont celles disponibles via l'API actuelle.
+        </p>
+      </div>
+      
+      <div class="category-cards">
         <div class="category-card">
-          <h4>Histogrammes de couleurs</h4>
-          <p>Les histogrammes RGB et HSV sont calculés et stockés pour chaque image.</p>
+          <h4>Histogrammes RGB/HSV</h4>
+          <p>Histogrammes de couleurs RGB et HSV calculés.</p>
           <p class="status">✅ Calculé</p>
         </div>
 
@@ -82,12 +88,6 @@
         <div class="category-card">
           <h4>Moments de Hu</h4>
           <p>7 moments invariants de Hu calculés.</p>
-          <p class="status">✅ Calculé</p>
-        </div>
-
-        <div class="category-card">
-          <h4>HOG (Histogram of Oriented Gradients)</h4>
-          <p>Histogramme des orientations de gradient calculé.</p>
           <p class="status">✅ Calculé</p>
         </div>
       </div>
