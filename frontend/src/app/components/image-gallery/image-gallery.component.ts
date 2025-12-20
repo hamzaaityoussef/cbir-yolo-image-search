@@ -22,6 +22,17 @@ export class ImageGalleryComponent implements OnInit {
   objectClassFilter = '';
   availableClasses: string[] = [];
 
+  // Pour la sélection multiple
+  selectedImages: Image[] = [];
+
+  // Pour la transformation d'image
+  showTransformModal = false;
+  transformTarget: Image | null = null;
+  transformType: string = 'crop';
+  transformParams: any = {};
+  transformError: string | null = null;
+  transformSuccess: boolean = false;
+
   constructor(private api: ApiService) {}
 
   ngOnInit() {
@@ -31,30 +42,48 @@ export class ImageGalleryComponent implements OnInit {
   loadImages() {
     this.loading = true;
     this.error = null;
-
-    const params: any = {
-      limit: this.pageSize,
-      offset: (this.currentPage - 1) * this.pageSize
-    };
-
-    if (this.objectClassFilter) {
-      params.object_class = this.objectClassFilter;
-    }
-
-    this.api.listImages(params).subscribe({
-      next: (response) => {
-        this.images = response.images || [];
-        this.total = response.total || 0;
-        this.loading = false;
-        
-        // Extraire les classes d'objets disponibles
+    this.api.getImages(this.currentPage, this.pageSize, this.objectClassFilter).subscribe({
+      next: (response: any) => {
+        this.images = response.images;
+        this.total = response.total;
         this.extractAvailableClasses();
-      },
-      error: (error) => {
-        this.error = `Erreur lors du chargement: ${error.error?.error || error.message}`;
         this.loading = false;
-        console.error('Load images error:', error);
+      },
+      error: (err: any) => {
+        this.error = 'Erreur lors du chargement des images';
+        this.loading = false;
       }
+    });
+  }
+
+  onImageSelectChange(image: Image) {
+    if (image.selected) {
+      if (!this.selectedImages.includes(image)) {
+        this.selectedImages.push(image);
+      }
+    } else {
+      this.selectedImages = this.selectedImages.filter(img => img.id !== image.id);
+    }
+  }
+
+  deleteSelectedImages() {
+    if (this.selectedImages.length === 0) return;
+    if (!confirm(`Supprimer ${this.selectedImages.length} image(s) sélectionnée(s) ?`)) return;
+    let count = 0;
+    this.selectedImages.forEach(img => {
+      this.api.deleteImage(img.id).subscribe({
+        next: () => {
+          count++;
+          this.images = this.images.filter(i => i.id !== img.id);
+          if (count === this.selectedImages.length) {
+            this.selectedImages = [];
+            this.loadImages();
+          }
+        },
+        error: (error) => {
+          console.error('Delete error:', error);
+        }
+      });
     });
   }
 
@@ -152,5 +181,73 @@ export class ImageGalleryComponent implements OnInit {
 
   get totalPages(): number {
     return Math.ceil(this.total / this.pageSize);
+  }
+
+  openTransformModal(image: Image) {
+    this.transformTarget = image;
+    this.showTransformModal = true;
+    this.transformType = 'crop';
+    this.transformParams = {};
+    this.transformError = null;
+    this.transformSuccess = false;
+  }
+
+  closeTransformModal() {
+    this.showTransformModal = false;
+    this.transformTarget = null;
+    this.transformType = 'crop';
+    this.transformParams = {};
+    this.transformError = null;
+    this.transformSuccess = false;
+  }
+
+  submitTransform() {
+    if (!this.transformTarget) {
+      this.transformError = 'Aucune image sélectionnée';
+      return;
+    }
+
+    this.transformError = null;
+    this.transformSuccess = false;
+
+    // Préparer les paramètres selon le type de transformation
+    const params: any = {};
+    
+    if (this.transformType === 'crop') {
+      params.x = parseInt(this.transformParams.x) || 0;
+      params.y = parseInt(this.transformParams.y) || 0;
+      params.width = parseInt(this.transformParams.width) || 100;
+      params.height = parseInt(this.transformParams.height) || 100;
+    } else if (this.transformType === 'resize') {
+      if (this.transformParams.scale) {
+        params.scale = parseFloat(this.transformParams.scale) || 1.0;
+      } else {
+        params.width = parseInt(this.transformParams.width) || 800;
+        params.height = parseInt(this.transformParams.height) || 600;
+      }
+    } else if (this.transformType === 'rotate') {
+      params.angle = parseFloat(this.transformParams.angle) || 0;
+    } else if (this.transformType === 'flip') {
+      params.direction = this.transformParams.direction || 'horizontal';
+    } else if (this.transformType === 'brightness') {
+      params.brightness = parseFloat(this.transformParams.brightness) || 1.0;
+      params.contrast = parseFloat(this.transformParams.contrast) || 1.0;
+    }
+
+    // Appeler l'API
+    this.api.transform(this.transformTarget.id, this.transformType, params).subscribe({
+      next: (response: any) => {
+        this.transformSuccess = true;
+        // Recharger la liste des images après un court délai
+        setTimeout(() => {
+          this.loadImages();
+          this.closeTransformModal();
+        }, 1500);
+      },
+      error: (error: any) => {
+        this.transformError = error.error?.error || 'Erreur lors de la transformation';
+        console.error('Transform error:', error);
+      }
+    });
   }
 }

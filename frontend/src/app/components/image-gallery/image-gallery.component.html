@@ -27,9 +27,11 @@
   </div>
 
   <div *ngIf="!loading && !error">
+
     <div class="gallery-info">
       <p>{{ total }} image(s) au total</p>
       <p>Page {{ currentPage }} / {{ totalPages }}</p>
+      <button *ngIf="selectedImages.length > 0" class="delete-selected-btn" (click)="deleteSelectedImages()">🗑️ Supprimer la sélection ({{ selectedImages.length }})</button>
     </div>
 
     <div *ngIf="images.length === 0" class="empty-state">
@@ -38,7 +40,8 @@
     </div>
 
     <div class="gallery-grid" *ngIf="images.length > 0">
-      <div class="image-card" *ngFor="let image of images">
+      <div class="image-card" *ngFor="let image of images; let idx = index">
+        <input type="checkbox" [(ngModel)]="image.selected" (change)="onImageSelectChange(image)">
         <div class="image-preview" (click)="viewImage(image)">
           <img [src]="'http://localhost:5000/download/' + image.id" 
                [alt]="image.filename"
@@ -63,16 +66,63 @@
             <button class="action-btn view-btn" (click)="viewImage(image)">👁️ Voir</button>
             <button class="action-btn download-btn" (click)="downloadImage(image)">⬇️ Télécharger</button>
             <button class="action-btn delete-btn" (click)="deleteImage(image)">🗑️ Supprimer</button>
+            <button class="action-btn transform-btn" (click)="openTransformModal(image)">🛠️ Transformer</button>
           </div>
         </div>
       </div>
-    </div>
-
     <div class="pagination" *ngIf="totalPages > 1">
       <button (click)="previousPage()" [disabled]="currentPage === 1">◀️ Précédent</button>
       <span>Page {{ currentPage }} / {{ totalPages }}</span>
       <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant ▶️</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal de transformation d'image -->
+<div *ngIf="showTransformModal" class="modal-overlay" (click)="closeTransformModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <button class="close-button" (click)="closeTransformModal()">✕</button>
+    <h3>Transformer l'image : {{ transformTarget?.filename }}</h3>
+    <form (ngSubmit)="submitTransform()">
+      <label>Type de transformation :</label>
+      <select [(ngModel)]="transformType" name="transformType" required>
+        <option value="crop">Crop</option>
+        <option value="resize">Resize</option>
+        <option value="rotate">Rotate</option>
+        <option value="flip">Flip</option>
+        <option value="brightness">Brightness/Contrast</option>
+      </select>
+      <div *ngIf="transformType === 'crop'">
+        <label>X: <input type="number" [(ngModel)]="transformParams.x" name="cropX"></label>
+        <label>Y: <input type="number" [(ngModel)]="transformParams.y" name="cropY"></label>
+        <label>Width: <input type="number" [(ngModel)]="transformParams.width" name="cropWidth"></label>
+        <label>Height: <input type="number" [(ngModel)]="transformParams.height" name="cropHeight"></label>
+      </div>
+      <div *ngIf="transformType === 'resize'">
+        <label>Width: <input type="number" [(ngModel)]="transformParams.width" name="resizeWidth"></label>
+        <label>Height: <input type="number" [(ngModel)]="transformParams.height" name="resizeHeight"></label>
+        <label>Scale: <input type="number" step="0.01" [(ngModel)]="transformParams.scale" name="resizeScale"></label>
+      </div>
+      <div *ngIf="transformType === 'rotate'">
+        <label>Angle (degrés): <input type="number" [(ngModel)]="transformParams.angle" name="rotateAngle"></label>
+      </div>
+      <div *ngIf="transformType === 'flip'">
+        <label>Direction:
+          <select [(ngModel)]="transformParams.direction" name="flipDirection">
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+      </div>
+      <div *ngIf="transformType === 'brightness'">
+        <label>Brightness: <input type="number" step="0.01" [(ngModel)]="transformParams.brightness" name="brightness"></label>
+        <label>Contrast: <input type="number" step="0.01" [(ngModel)]="transformParams.contrast" name="contrast"></label>
+      </div>
+      <button type="submit">Appliquer</button>
+    </form>
+    <div *ngIf="transformError" class="error-message">{{ transformError }}</div>
+    <div *ngIf="transformSuccess" class="success-message">Transformation réussie !</div>
   </div>
 </div>
 

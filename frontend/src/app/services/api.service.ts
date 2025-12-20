@@ -14,6 +14,7 @@ export interface Image {
   objects_count?: number;
   object_classes?: string[];
   similarity_score?: number;
+  selected?: boolean; // Pour la sélection dans la galerie
 }
 
 export interface UploadResponse {
@@ -124,5 +125,31 @@ export class ApiService {
    */
   healthCheck(): Observable<{ status: string }> {
     return this.http.get<{ status: string }>(`${API_BASE}/health`);
+  }
+
+  /**
+   * Récupère les images avec pagination et filtres
+   */
+  getImages(page: number, pageSize: number, objectClassFilter: string): Observable<{ images: Image[], total: number }> {
+    let params = new HttpParams()
+      .set('offset', ((page - 1) * pageSize).toString())
+      .set('limit', pageSize.toString());
+    if (objectClassFilter) {
+      params = params.set('object_class', objectClassFilter);
+    }
+    return this.http.get<any>(`${API_BASE}/images`, { params });
+  }
+
+  /**
+   * Récupère les descripteurs détaillés d'une image ou d'un objet
+   * @param imageId ID de l'image
+   * @param objectId (optionnel) index de l'objet
+   */
+  getDescriptors(imageId: number | string, objectId?: number): Observable<any> {
+    let url = `${API_BASE}/descriptors/${imageId}`;
+    if (objectId !== undefined) {
+      url += `/${objectId}`;
+    }
+    return this.http.get<any>(url);
   }
 }
