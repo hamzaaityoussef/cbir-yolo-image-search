@@ -14,7 +14,9 @@ Projet académique pour le module "Multimedia Mining and Indexing". Application 
 
 - Python 3.10+ et pip
 - Node.js 18+ et npm
-- MongoDB Atlas (gratuit en ligne) - **pas besoin d'installation locale**
+- MongoDB (local ou Atlas) :
+  - **Option 1** : MongoDB local ([Télécharger](https://www.mongodb.com/try/download/community))
+  - **Option 2** : MongoDB Atlas (gratuit en ligne, pas besoin d'installation locale)
 
 ## 🚀 Démarrage Rapide
 
@@ -39,24 +41,30 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-3. **Configurer MongoDB Atlas :**
+3. **Configurer MongoDB :**
+   
+   **Option A - MongoDB Local (Recommandé) :**
+   - Installez MongoDB localement : [Télécharger MongoDB Community](https://www.mongodb.com/try/download/community)
+   - Démarrez le service MongoDB sur votre machine
+   - Créez le fichier `.env` dans `backend/` :
+   ```env
+   MONGO_URI=mongodb://localhost:27017/cbir
+   MONGO_DB=cbir
+   UPLOAD_FOLDER=uploads
+   ```
+   
+   **Option B - MongoDB Atlas (Cloud) :**
    - Créez un compte sur [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
    - Créez un cluster FREE
    - Configurez Network Access et Database Access
-   - Copiez votre chaîne de connexion
-
-4. **Créer le fichier `.env` :**
-```bash
-copy .env.example .env  # Windows
-# ou cp .env.example .env  # Linux/Mac
-```
-
-5. **Éditez `.env`** avec votre URI MongoDB Atlas :
-```env
-MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/cbir?retryWrites=true&w=majority
-MONGO_DB=cbir
-UPLOAD_FOLDER=uploads
-```
+   - Créez le fichier `.env` dans `backend/` :
+   ```env
+   MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/cbir?retryWrites=true&w=majority
+   MONGO_DB=cbir
+   UPLOAD_FOLDER=uploads
+   ```
+   
+   📖 **Voir [backend/CREATE_ENV_FILE.md](backend/CREATE_ENV_FILE.md) pour un guide détaillé**
 
 6. **Démarrer le serveur :**
 ```bash
@@ -113,7 +121,9 @@ Services :
 ## 🔧 Implémentation
 
 ### YOLO & Descripteurs
-- ✅ **YOLOv8n** : Détection d'objets implémentée dans `utils/yolo_detection.py`
+- ✅ **YOLO personnalisé (best.pt)** : Détection d'objets implémentée dans `utils/yolo_detection.py`
+  - Le modèle personnalisé se trouve dans `backend/fine_tuned_model/best.pt`
+  - Si le fichier n'existe pas, une erreur sera levée avec des instructions
 - ✅ **Descripteurs visuels** : Tous implémentés dans `utils/descriptor_extraction.py` :
   - Histogrammes RGB et HSV
   - Couleurs dominantes (K-means)
@@ -148,8 +158,8 @@ frontend/
 ## 📝 Notes
 
 - Les images uploadées sont stockées dans `backend/uploads/` (ignoré par git)
-- ImageNet : Sélectionnez 15 catégories pertinentes pour votre dataset
-- Le modèle YOLOv8n sera téléchargé automatiquement au premier usage (~6MB)
+- Le modèle YOLO personnalisé (`best.pt`) doit être présent dans `backend/fine_tuned_model/`
+- Si vous n'avez pas de modèle personnalisé, vous pouvez utiliser le modèle pré-entraîné en modifiant `backend/utils/yolo_detection.py`
 
 ## 🐛 Dépannage
 
