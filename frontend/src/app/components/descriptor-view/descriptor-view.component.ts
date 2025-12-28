@@ -13,6 +13,7 @@ export class DescriptorViewComponent implements OnInit {
   descriptors: any = null;
   loading = false;
   error: string | null = null;
+  Math = Math; // Exposer Math pour l'utiliser dans le template
 
   constructor(
     private route: ActivatedRoute,
@@ -58,22 +59,9 @@ export class DescriptorViewComponent implements OnInit {
     });
   }
 
-  /**
-   * Charge les descripteurs d'un objet spécifique
-   */
-  loadObjectDescriptors(objectId: number) {
-    this.loading = true;
-    this.api.getDescriptors(this.imageId, objectId).subscribe({
-      next: (descResp: any) => {
-        this.descriptors = descResp.descriptors;
-        this.loading = false;
-      },
-      error: (error) => {
-        this.error = `Erreur lors du chargement des descripteurs: ${error.error?.error || error.message}`;
-        this.loading = false;
-      }
-    });
-  }
+
+  selectedObjectId: number | null = null;
+  selectedObjectClass: string | null = null;
 
   formatNumber(value: number): string {
     if (value === null || value === undefined) return 'N/A';
@@ -89,6 +77,100 @@ export class DescriptorViewComponent implements OnInit {
       return `[${arr.length} éléments] - Aperçu: ${arr.slice(0, 5).join(', ')}...`;
     }
     return arr.join(', ');
+  }
+
+  /**
+   * Charge les descripteurs d'un objet spécifique
+   */
+  loadObjectDescriptors(objectId: number) {
+    this.selectedObjectId = objectId;
+    const obj = this.image?.objects_detected?.[objectId];
+    this.selectedObjectClass = obj?.class || null;
+    
+    this.loading = true;
+    this.error = null;
+    
+    this.api.getDescriptors(this.imageId, objectId).subscribe({
+      next: (descResp: any) => {
+        this.descriptors = descResp.descriptors;
+        this.loading = false;
+      },
+      error: (error) => {
+        this.error = `Erreur lors du chargement des descripteurs: ${error.error?.error || error.message}`;
+        this.loading = false;
+      }
+    });
+  }
+
+  /**
+   * Retourne à l'affichage des descripteurs de l'image complète
+   */
+  showImageDescriptors() {
+    this.selectedObjectId = null;
+    this.selectedObjectClass = null;
+    this.loadImageData();
+  }
+
+  /**
+   * Convertit une couleur RGB en hexadécimal
+   */
+  rgbToHex(r: number, g: number, b: number): string {
+    return '#' + [r, g, b].map(x => {
+      const hex = Math.round(x).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+  }
+
+  /**
+   * Obtient les statistiques d'un histogramme
+   */
+  getHistogramStats(hist: number[]): { mean: number, std: number, max: number, min: number } {
+    if (!hist || hist.length === 0) {
+      return { mean: 0, std: 0, max: 0, min: 0 };
+    }
+    const mean = hist.reduce((a, b) => a + b, 0) / hist.length;
+    const variance = hist.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / hist.length;
+    const std = Math.sqrt(variance);
+    return {
+      mean: mean,
+      std: std,
+      max: Math.max(...hist),
+      min: Math.min(...hist)
+    };
+  }
+
+  /**
+   * Calcule la moyenne d'un tableau
+   */
+  getArrayMean(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+
+  /**
+   * Calcule l'écart-type d'un tableau
+   */
+  getArrayStd(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    const mean = this.getArrayMean(arr);
+    const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+    return Math.sqrt(variance);
+  }
+
+  /**
+   * Obtient le minimum d'un tableau
+   */
+  getArrayMin(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    return Math.min(...arr);
+  }
+
+  /**
+   * Obtient le maximum d'un tableau
+   */
+  getArrayMax(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    return Math.max(...arr);
   }
 
   goBack() {

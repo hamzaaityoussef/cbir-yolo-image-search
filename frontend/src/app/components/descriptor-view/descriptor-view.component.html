@@ -49,46 +49,157 @@
     </div>
 
     <div class="descriptors-section">
-      <h3>Descripteurs visuels</h3>
-      <div *ngIf="descriptors">
-        <pre>{{ descriptors | json }}</pre>
+      <div *ngIf="selectedObjectId !== null" class="object-selector">
+        <h3>Descripteurs de l'objet : {{ selectedObjectClass }}</h3>
+        <button class="btn-link" (click)="showImageDescriptors()">← Voir les descripteurs de l'image complète</button>
       </div>
-      <div *ngIf="!descriptors">
-        <p class="note">
-          ⚠️ Les descripteurs complets nécessitent un endpoint dédié. 
-          Les informations affichées sont celles disponibles via l'API actuelle.
-        </p>
+      <div *ngIf="selectedObjectId === null">
+        <h3>Descripteurs visuels de l'image complète</h3>
       </div>
-      
-      <div class="category-cards">
-        <div class="category-card">
-          <h4>Histogrammes RGB/HSV</h4>
-          <p>Histogrammes de couleurs RGB et HSV calculés.</p>
-          <p class="status">✅ Calculé</p>
+
+      <div *ngIf="!descriptors && !loading" class="note">
+        <p>⚠️ Aucun descripteur disponible pour cette {{ selectedObjectId !== null ? 'objet' : 'image' }}.</p>
+      </div>
+
+      <div *ngIf="descriptors" class="descriptors-content">
+        <!-- Histogrammes RGB -->
+        <div class="descriptor-category" *ngIf="descriptors.color_histogram_rgb">
+          <h4>📊 Histogramme RGB</h4>
+          <div class="histogram-info">
+            <div class="hist-channel" *ngIf="descriptors.color_histogram_rgb.r">
+              <strong>Rouge (R):</strong>
+              <div class="stats">
+                <span>Moyenne: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.r).mean) }}</span>
+                <span>Écart-type: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.r).std) }}</span>
+                <span>Max: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.r).max) }}</span>
+              </div>
+              <div class="histogram-bar">
+                <div class="bar" *ngFor="let val of descriptors.color_histogram_rgb.r.slice(0, 50); let i = index" 
+                     [style.height.%]="val * 100" 
+                     [style.background-color]="'#ff0000'"
+                     [title]="'Bin ' + i + ': ' + formatNumber(val)"></div>
+              </div>
+            </div>
+            <div class="hist-channel" *ngIf="descriptors.color_histogram_rgb.g">
+              <strong>Vert (G):</strong>
+              <div class="stats">
+                <span>Moyenne: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.g).mean) }}</span>
+                <span>Écart-type: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.g).std) }}</span>
+                <span>Max: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.g).max) }}</span>
+              </div>
+              <div class="histogram-bar">
+                <div class="bar" *ngFor="let val of descriptors.color_histogram_rgb.g.slice(0, 50); let i = index" 
+                     [style.height.%]="val * 100" 
+                     [style.background-color]="'#00ff00'"
+                     [title]="'Bin ' + i + ': ' + formatNumber(val)"></div>
+              </div>
+            </div>
+            <div class="hist-channel" *ngIf="descriptors.color_histogram_rgb.b">
+              <strong>Bleu (B):</strong>
+              <div class="stats">
+                <span>Moyenne: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.b).mean) }}</span>
+                <span>Écart-type: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.b).std) }}</span>
+                <span>Max: {{ formatNumber(getHistogramStats(descriptors.color_histogram_rgb.b).max) }}</span>
+              </div>
+              <div class="histogram-bar">
+                <div class="bar" *ngFor="let val of descriptors.color_histogram_rgb.b.slice(0, 50); let i = index" 
+                     [style.height.%]="val * 100" 
+                     [style.background-color]="'#0000ff'"
+                     [title]="'Bin ' + i + ': ' + formatNumber(val)"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="category-card">
-          <h4>Couleurs dominantes</h4>
-          <p>5 couleurs dominantes extraites via K-means clustering.</p>
-          <p class="status">✅ Calculé</p>
+        <!-- Couleurs dominantes -->
+        <div class="descriptor-category" *ngIf="descriptors.dominant_colors">
+          <h4>🎨 Couleurs dominantes</h4>
+          <div class="dominant-colors">
+            <div class="color-item" *ngFor="let color of descriptors.dominant_colors; let i = index">
+              <div class="color-box" [style.background-color]="rgbToHex(color[0], color[1], color[2])"></div>
+              <div class="color-info">
+                <strong>Couleur {{ i + 1 }}</strong>
+                <div class="color-rgb">RGB({{ Math.round(color[0]) }}, {{ Math.round(color[1]) }}, {{ Math.round(color[2]) }})</div>
+                <div class="color-hex">{{ rgbToHex(color[0], color[1], color[2]) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="category-card">
-          <h4>Descripteurs de Tamura</h4>
-          <p>Rugosité, contraste et orientation calculés.</p>
-          <p class="status">✅ Calculé</p>
+        <!-- Descripteurs de Tamura -->
+        <div class="descriptor-category" *ngIf="descriptors.tamura">
+          <h4>🌊 Descripteurs de Tamura</h4>
+          <div class="tamura-descriptors">
+            <div class="tamura-item" *ngIf="descriptors.tamura.coarseness !== undefined">
+              <strong>Rugosité (Coarseness):</strong>
+              <span class="value">{{ formatNumber(descriptors.tamura.coarseness) }}</span>
+            </div>
+            <div class="tamura-item" *ngIf="descriptors.tamura.contrast !== undefined">
+              <strong>Contraste:</strong>
+              <span class="value">{{ formatNumber(descriptors.tamura.contrast) }}</span>
+            </div>
+            <div class="tamura-item" *ngIf="descriptors.tamura.directionality !== undefined">
+              <strong>Orientation (Directionality):</strong>
+              <span class="value">{{ formatNumber(descriptors.tamura.directionality) }}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="category-card">
-          <h4>Filtres de Gabor</h4>
-          <p>64 descripteurs basés sur les filtres de Gabor (4 échelles × 8 orientations × 2 statistiques).</p>
-          <p class="status">✅ Calculé</p>
+        <!-- Filtres de Gabor -->
+        <div class="descriptor-category" *ngIf="descriptors.gabor">
+          <h4>🌀 Filtres de Gabor</h4>
+          <div class="gabor-info">
+            <p>64 descripteurs (4 échelles × 8 orientations × 2 statistiques)</p>
+            <div class="gabor-stats" *ngIf="descriptors.gabor.length > 0">
+              <div class="stat-item">
+                <strong>Moyenne:</strong> {{ formatNumber(getArrayMean(descriptors.gabor)) }}
+              </div>
+              <div class="stat-item">
+                <strong>Écart-type:</strong> {{ formatNumber(getArrayStd(descriptors.gabor)) }}
+              </div>
+              <div class="stat-item">
+                <strong>Min:</strong> {{ formatNumber(getArrayMin(descriptors.gabor)) }}
+              </div>
+              <div class="stat-item">
+                <strong>Max:</strong> {{ formatNumber(getArrayMax(descriptors.gabor)) }}
+              </div>
+            </div>
+            <details class="gabor-details">
+              <summary>Voir tous les descripteurs Gabor ({{ descriptors.gabor.length }})</summary>
+              <div class="gabor-values">
+                <span *ngFor="let val of descriptors.gabor; let i = index" class="gabor-value" [title]="'Index ' + i">
+                  {{ formatNumber(val) }}
+                </span>
+              </div>
+            </details>
+          </div>
         </div>
 
-        <div class="category-card">
-          <h4>Moments de Hu</h4>
-          <p>7 moments invariants de Hu calculés.</p>
-          <p class="status">✅ Calculé</p>
+        <!-- Moments de Hu -->
+        <div class="descriptor-category" *ngIf="descriptors.hu_moments">
+          <h4>🔢 Moments de Hu (7 invariants)</h4>
+          <div class="hu-moments">
+            <div class="hu-item" *ngFor="let moment of descriptors.hu_moments; let i = index">
+              <strong>Moment {{ i + 1 }}:</strong>
+              <span class="value">{{ formatNumber(moment) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HOG -->
+        <div class="descriptor-category" *ngIf="descriptors.hog">
+          <h4>📐 Histogramme des orientations (HOG)</h4>
+          <div class="hog-info">
+            <p>{{ descriptors.hog.length }} descripteurs HOG calculés</p>
+            <div class="hog-stats" *ngIf="descriptors.hog.length > 0">
+              <div class="stat-item">
+                <strong>Moyenne:</strong> {{ formatNumber(getArrayMean(descriptors.hog)) }}
+              </div>
+              <div class="stat-item">
+                <strong>Écart-type:</strong> {{ formatNumber(getArrayStd(descriptors.hog)) }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

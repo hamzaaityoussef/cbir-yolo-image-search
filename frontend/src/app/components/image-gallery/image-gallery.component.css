@@ -200,6 +200,15 @@ h2 {
   background: #138496;
 }
 
+.descriptors-btn {
+  background: #6f42c1;
+  color: white;
+}
+
+.descriptors-btn:hover {
+  background: #5a32a3;
+}
+
 .download-btn {
   background: #28a745;
   color: white;

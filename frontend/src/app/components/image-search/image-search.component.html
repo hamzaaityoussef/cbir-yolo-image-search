@@ -140,7 +140,10 @@
               {{ result.object_classes.join(', ') }}
             </span>
           </div>
-          <button class="view-btn" (click)="viewImage(result)">👁️ Voir</button>
+          <div class="result-actions">
+            <button class="view-btn" (click)="viewImage(result)">👁️ Voir</button>
+            <button class="descriptors-btn" (click)="viewDescriptors(result)">📊 Descripteurs</button>
+          </div>
         </div>
       </div>
     </div>

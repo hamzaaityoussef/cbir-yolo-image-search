@@ -147,9 +147,10 @@ export class ApiService {
    */
   getDescriptors(imageId: number | string, objectId?: number): Observable<any> {
     let url = `${API_BASE}/descriptors/${imageId}`;
+    let params = new HttpParams();
     if (objectId !== undefined) {
-      url += `/${objectId}`;
+      params = params.set('object_id', objectId.toString());
     }
-    return this.http.get<any>(url);
+    return this.http.get<any>(url, { params });
   }
 }

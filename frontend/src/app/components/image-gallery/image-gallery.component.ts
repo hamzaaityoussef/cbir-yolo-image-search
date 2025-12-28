@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { ApiService, Image } from '../../services/api.service';
 
 @Component({
@@ -33,7 +34,10 @@ export class ImageGalleryComponent implements OnInit {
   transformError: string | null = null;
   transformSuccess: boolean = false;
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadImages();
@@ -181,6 +185,10 @@ export class ImageGalleryComponent implements OnInit {
 
   get totalPages(): number {
     return Math.ceil(this.total / this.pageSize);
+  }
+
+  viewDescriptors(image: Image) {
+    this.router.navigate(['/descriptors', image.id]);
   }
 
   openTransformModal(image: Image) {

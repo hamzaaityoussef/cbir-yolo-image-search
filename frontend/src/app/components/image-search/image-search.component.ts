@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { ApiService, Image } from '../../services/api.service';
 
 @Component({
@@ -29,7 +30,10 @@ export class ImageSearchComponent implements OnInit {
   topK = 10;
   objectClassFilter = '';
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadAvailableImages();
@@ -118,6 +122,10 @@ export class ImageSearchComponent implements OnInit {
 
   viewImage(image: Image) {
     window.open(`http://localhost:5000/download/${image.id}`, '_blank');
+  }
+
+  viewDescriptors(image: Image) {
+    this.router.navigate(['/descriptors', image.id]);
   }
 
   getObjectClasses(): string[] {
