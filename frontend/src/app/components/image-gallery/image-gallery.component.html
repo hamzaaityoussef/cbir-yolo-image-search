@@ -63,19 +63,22 @@
             </span>
           </div>
           <div class="image-actions">
-            <button class="action-btn view-btn" (click)="viewImage(image)">👁️ Voir</button>
-            <button class="action-btn descriptors-btn" (click)="viewDescriptors(image)">📊 Descripteurs</button>
-            <button class="action-btn download-btn" (click)="downloadImage(image)">⬇️ Télécharger</button>
-            <button class="action-btn delete-btn" (click)="deleteImage(image)">🗑️ Supprimer</button>
-            <button class="action-btn transform-btn" (click)="openTransformModal(image)">🛠️ Transformer</button>
+            <button class="action-btn view-btn" (click)="viewImage(image); $event.stopPropagation()">👁️ Voir</button>
+            <button class="action-btn descriptors-btn" (click)="viewDescriptors(image); $event.stopPropagation()">📊 Descripteurs</button>
+            <button class="action-btn download-btn" (click)="downloadImage(image); $event.stopPropagation()">⬇️ Télécharger</button>
+            <button class="action-btn delete-btn" (click)="deleteImage(image); $event.stopPropagation()">🗑️ Supprimer</button>
+            <button class="action-btn transform-btn" (click)="openTransformModal(image); $event.stopPropagation()">🛠️ Transformer</button>
           </div>
         </div>
       </div>
-    <div class="pagination" *ngIf="totalPages > 1">
-      <button (click)="previousPage()" [disabled]="currentPage === 1">◀️ Précédent</button>
-      <span>Page {{ currentPage }} / {{ totalPages }}</span>
-      <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant ▶️</button>
     </div>
+  </div>
+
+  <!-- Pagination fixée en bas -->
+  <div class="pagination-fixed" *ngIf="!loading && !error && totalPages > 1">
+    <button (click)="previousPage()" [disabled]="currentPage === 1">◀️ Précédent</button>
+    <span>Page {{ currentPage }} / {{ totalPages }}</span>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant ▶️</button>
   </div>
 </div>
 
